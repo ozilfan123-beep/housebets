@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Housebets Sportsbook</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- React & ReactDOM CDN -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Babel Standalone (Runs React in the browser without build tools) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    body {
+      background-color: #0a0e14;
+      color: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    // ==========================================
+    // 1. OFFICIAL CLUB CRESTS (REAL IMAGES)
+    // ==========================================
+    const CRESTS = {
+      'Arsenal': 'https://crests.football-data.org/57.png',
+      'Brighton & Hove Albion': 'https://crests.football-data.org/397.png',
+      'Brighton': 'https://crests.football-data.org/397.png',
+      'Real Madrid': 'https://crests.football-data.org/86.png',
+      'Barcelona': 'https://crests.football-data.org/81.png',
+      'Manchester City': 'https://crests.football-data.org/65.png',
+      'Liverpool': 'https://crests.football-data.org/64.png',
+      'Bayern Munich': 'https://crests.football-data.org/5.png',
+      'Inter Milan': 'https://crests.football-data.org/108.png',
+      'Juventus': 'https://crests.football-data.org/109.png',
+      'Borussia Dortmund': 'https://crests.football-data.org/4.png',
+      'AC Milan': 'https://crests.football-data.org/98.png',
+      'RB Leipzig': 'https://crests.football-data.org/721.png',
+    };
+
+    const ClubBadge = ({ name, size = 22 }) => {
+      const url = CRESTS[name] || 'https://crests.football-data.org/57.png';
+      return (
+        <img
+          src={url}
+          alt={name}
+          style={{ width: size, height: size }}
+          className="object-contain inline-block shrink-0 drop-shadow-sm"
+          loading="lazy"
+        />
+      );
+    };
+
+    // ==========================================
+    // 2. EMBEDDED ICONS (ZERO FAILURES)
+    // ==========================================
+    const Icon = ({ path, size = 16, className = "" }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        {path}
+      </svg>
+    );
+
+    const Icons = {
+      Home: (p) => <Icon {...p} path={<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>} />,
+      Radio: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/></>} />,
+      Trophy: (p) => <Icon {...p} path={<><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></>} />,
+      Receipt: (p) => <Icon {...p} path={<><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></>} />,
+      History: (p) => <Icon {...p} path={<><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></>} />,
+      Search: (p) => <Icon {...p} path={<><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></>} />,
+      Star: ({ filled, ...p }) => (
+        <svg width={p.size || 16} height={p.size || 16} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={p.className}>
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      ),
+      Clock: (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></>} />,
+      ArrowLeft: (p) => <Icon {...p} path={<><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></>} />,
+      Trash2: (p) => <Icon {...p} path={<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></>} />,
+      TrendingUp: (p) => <Icon {...p} path={<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>} />,
+      ShieldAlert: (p) => <Icon {...p} path={<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></>} />,
+      CheckCircle2: (p) => <Icon {...p} path={<><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></>} />,
+      AlertTriangle: (p) => <Icon {...p} path={<><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></>} />,
+      DollarSign: (p) => <Icon {...p} path={<><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>} />,
+      ChevronRight: (p) => <Icon {...p} path={<path d="m9 18 6-6-6-6"/>} />,
+      X: (p) => <Icon {...p} path={<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>} />
+    };
+
+    // ==========================================
+    // 3. REAL FIXTURES
+    // ==========================================
+    const MOCK_MATCHES = [
+      {
+        id: 'ars-bri',
+        competition: 'Premier League',
+        homeTeam: 'Arsenal',
+        awayTeam: 'Brighton & Hove Albion',
+        isLive: true,
+        minute: "64'",
+        homeScore: 2,
+        awayScore: 1,
+        odds: { home: 1.55, draw: 4.20, away: 5.80 }
+      },
+      {
+        id: 'rma-bar',
+        competition: 'LaLiga',
+        homeTeam: 'Real Madrid',
+        awayTeam: 'Barcelona',
+        isLive: true,
+        minute: "38'",
+        homeScore: 1,
+        awayScore: 1,
+        odds: { home: 2.15, draw: 3.40, away: 3.20 }
+      },
+      {
+        id: 'mci-liv',
+        competition: 'Premier League',
+        homeTeam: 'Manchester City',
+        awayTeam: 'Liverpool',
+        isLive: false,
+        startTime: 'Today, 20:00',
+        odds: { home: 1.85, draw: 3.90, away: 3.95 }
+      },
+      {
+        id: 'bay-int',
+        competition: 'Champions League',
+        homeTeam: 'Bayern Munich',
+        awayTeam: 'Inter Milan',
+        isLive: false,
+        startTime: 'Tomorrow, 20:00',
+        odds: { home: 1.65, draw: 4.00, away: 4.75 }
+      },
+      {
+        id: 'juv-mil',
+        competition: 'Serie A',
+        homeTeam: 'Juventus',
+        awayTeam: 'AC Milan',
+        isLive: false,
+        startTime: 'Tomorrow, 19:45',
+        odds: { home: 2.30, draw: 3.10, away: 3.25 }
+      },
+      {
+        id: 'dor-lep',
+        competition: 'Bundesliga',
+        homeTeam: 'Borussia Dortmund',
+        awayTeam: 'RB Leipzig',
+        isLive: false,
+        startTime: 'Saturday, 17:30',
+        odds: { home: 2.05, draw: 3.70, away: 3.35 }
+      }
+    ];
+
+    // ==========================================
+    // 4. MAIN APPLICATION
+    // ==========================================
+    function App() {
+      const [currentPage, setCurrentPage] = useState('home');
+      const [selectedLeague, setSelectedLeague] = useState('All');
+      const [searchQuery, setSearchQuery] = useState('');
+      const [favorites, setFavorites] = useState(['Arsenal', 'Premier League']);
+
+      // Singles Bet Slip (USDT)
+      const [activeBet, setActiveBet] = useState({
+        id: 'ars-bri-home',
+        matchName: 'Arsenal vs Brighton & Hove Albion',
+        marketName: 'Full Time Result',
+        selectionName: 'Arsenal to Win',
+        odds: 1.55,
+        isSuspended: false
+      });
+      const [stake, setStake] = useState('25.00');
+      const [oddsChanged, setOddsChanged] = useState(false);
+      const [notification, setNotification] = useState(null);
+
+      // My Bets
+      const [myBets, setMyBets] = useState([
+        {
+          id: 'bet-1',
+          matchName: 'Real Madrid vs Barcelona',
+          marketName: 'Full Time Result',
+          selectionName: 'Real Madrid',
+          odds: 2.10,
+          stake: 50,
+          potentialReturn: 105.00,
+          status: 'OPEN',
+          cashoutAmount: 46.50
+        },
+        {
+          id: 'bet-2',
+          matchName: 'Manchester City vs Chelsea',
+          marketName: 'Total Goals Over 2.5',
+          selectionName: 'Over 2.5',
+          odds: 1.70,
+          stake: 100,
+          potentialReturn: 170.00,
+          status: 'WON'
+        }
+      ]);
+
+      const showToast = (text, type = 'success') => {
+        setNotification({ text, type });
+        setTimeout(() => setNotification(null), 2500);
+      };
+
+      const handleSelectOdd = (sel) => {
+        setOddsChanged(false);
+        setActiveBet(sel);
+        showToast(`Added "${sel.selectionName}" to Bet Slip`);
+      };
+
+      const simulateOddsChange = () => {
+        if (!activeBet) return;
+        const newOdds = +(activeBet.odds + 0.15).toFixed(2);
+        setActiveBet({ ...activeBet, originalOdds: activeBet.odds, odds: newOdds });
+        setOddsChanged(true);
+        showToast('Odds changed! Requires customer acceptance', 'error');
+      };
+
+      const toggleMarketSuspended = () => {
+        if (!activeBet) return;
+        setActiveBet({ ...activeBet, isSuspended: !activeBet.isSuspended });
+        showToast(activeBet.isSuspended ? 'Market resumed' : 'Market suspended!', 'error');
+      };
+
+      const handlePlaceBet = () => {
+        if (!activeBet) return;
+        if (activeBet.isSuspended) {
+          showToast('Market suspended! Bet cannot be placed.', 'error');
+          return;
+        }
+        if (oddsChanged) {
+          showToast('Please accept the updated odds first!', 'error');
+          return;
+        }
+        const numericStake = parseFloat(stake);
+        if (isNaN(numericStake) || numericStake <= 0) {
+          showToast('Enter a valid stake in USDT', 'error');
+          return;
+        }
+        if (numericStake > 500) {
+          showToast('Failed: Stake exceeds 500 USDT limit.', 'error');
+          return;
+        }
+
+        const newBet = {
+          id: 'bet-' + Date.now(),
+          matchName: activeBet.matchName,
+          marketName: activeBet.marketName,
+          selectionName: activeBet.selectionName,
+          odds: activeBet.odds,
+          stake: numericStake,
+          potentialReturn: +(numericStake * activeBet.odds).toFixed(2),
+          status: 'OPEN',
+          cashoutAmount: +(numericStake * 0.94).toFixed(2)
+        };
+
+        setMyBets([newBet, ...myBets]);
+        setActiveBet(null);
+        showToast('Bet placed successfully in USDT!');
+        setTimeout(() => setCurrentPage('betslip'), 1000);
+      };
+
+      const cashOut = (id) => {
+        setMyBets(myBets.map(b => b.id === id ? { ...b, status: 'CASHED_OUT' } : b));
+        showToast('Cash out successful!');
+      };
+
+      const filtered = useMemo(() => {
+        if (!searchQuery.trim()) return MOCK_MATCHES;
+        const q = searchQuery.toLowerCase();
+        return MOCK_MATCHES.filter(m =>
+          m.homeTeam.toLowerCase().includes(q) ||
+          m.awayTeam.toLowerCase().includes(q) ||
+          m.competition.toLowerCase().includes(q)
+        );
+      }, [searchQuery]);
+
+      return (
+        <div className="min-h-screen bg-[#0a0e14] text-slate-100 flex flex-col font-sans pb-24 md:pb-10">
+          
+          {/* TOAST ALERTS */}
+          {notification && (
+            <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-lg text-xs font-bold shadow-2xl flex items-center gap-2 border ${
+              notification.type === 'success'
+                ? 'bg-emerald-950 text-[#00e6a7] border-[#00e6a7]/50'
+                : 'bg-rose-950 text-rose-300 border-rose-500/50'
+            }`}>
+              {notification.type === 'success' ? <Icons.CheckCircle2 size={16} /> : <Icons.AlertTriangle size={16} />}
+              <span>{notification.text}</span>
+            </div>
+          )}
+
+          {/* HEADER (ZERO ORANGE - TURQUOISE & CHARCOAL IDENTITY) */}
+          <header className="sticky top-0 z-40 bg-[#0f141c]/95 backdrop-blur-md border-b border-[#1c2738] px-4 py-3">
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+              <div onClick={() => setCurrentPage('home')} className="flex items-center gap-2.5 cursor-pointer">
+                <div className="w-8 h-8 rounded-lg bg-[#142329] border border-[#00e6a7]/50 flex items-center justify-center font-black text-[#00e6a7] text-sm shadow-[0_0_10px_rgba(0,230,167,0.2)]">
+                  HB
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-black tracking-wider text-white text-base leading-none">
+                    HOUSE<span className="text-[#00e6a7]">BETS</span>
+                  </span>
+                  <span className="text-[9px] uppercase tracking-widest text-slate-400 font-semibold">SPORTSBOOK</span>
+                </div>
+              </div>
+
+              {/* Desktop Nav */}
+              <div className="hidden md:flex items-center gap-1 border-l border-[#1c2738] pl-3">
+                {[
+                  { id: 'home', label: 'Sports' },
+                  { id: 'live', label: 'Live' },
+                  { id: 'football', label: 'Football' },
+                  { id: 'betslip', label: 'Bet Slip & My Bets', badge: activeBet ? '1' : null }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setCurrentPage(tab.id)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 ${
+                      currentPage === tab.id ? 'bg-[#00e6a7] text-slate-950 font-bold' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {tab.badge && <span className="bg-slate-950 text-[#00e6a7] text-[10px] font-bold px-1.5 rounded-full">{tab.badge}</span>}
+                  </button>
+                ))}
+              </div>
+
+              {/* USDT Balance */}
+              <div className="bg-[#121923] border border-[#1c2738] px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Balance:</span>
+                <span className="text-xs font-black text-[#00e6a7]">1,245.80 USDT</span>
+              </div>
+            </div>
+
+            {/* Mobile Search */}
+            <div className="mt-2.5 md:hidden relative">
+              <Icons.Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search Arsenal, Real Madrid, Premier League..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-[#151c27] border border-[#1c2738] rounded-lg pl-8 pr-8 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-[#00e6a7]"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400">
+                  <Icons.X size={13} />
+                </button>
+              )}
+            </div>
+          </header>
+
+          {/* MAIN CONTAINER (EXACTLY 5 PAGES) */}
+          <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6">
+
+            {/* --- PAGE 1: SPORTS HOME --- */}
+            {currentPage === 'home' && (
+              <div className="space-y-6">
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {['All Sports', 'Football', 'Basketball', 'Tennis', 'Ice Hockey', 'MMA'].map((sp, idx) => (
+                    <button
+                      key={sp}
+                      onClick={() => { if (sp === 'Football') setCurrentPage('football'); }}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border ${
+                        idx === 0 ? 'bg-[#00e6a7] text-slate-950 border-[#00e6a7] font-bold' : 'bg-[#121923] text-slate-300 border-[#1c2738]'
+                      }`}
+                    >
+                      {sp}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Top Competitions */}
+                <div>
+                  <h2 className="text-xs uppercase font-extrabold tracking-wider text-slate-400 mb-3 flex items-center gap-1.5">
+                    <Icons.Trophy size={14} className="text-[#00e6a7]" /> Top Competitions
+                  </h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {['Premier League', 'Champions League', 'LaLiga', 'Serie A'].map(name => (
+                      <div
+                        key={name}
+                        onClick={() => { setSelectedLeague(name); setCurrentPage('football'); }}
+                        className="bg-[#121923] hover:bg-[#17212e] border border-[#1c2738] rounded-xl p-3 cursor-pointer flex justify-between items-center group transition-colors"
+                      >
+                        <span className="text-xs font-bold text-white group-hover:text-[#00e6a7]">{name}</span>
+                        <Icons.ChevronRight size={13} className="text-slate-400 group-hover:text-[#00e6a7]" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Live Now (With Badges) */}
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-[#00e6a7] animate-pulse" />
+                      <h2 className="text-sm font-extrabold uppercase tracking-wide text-white">Live Now</h2>
+                    </div>
+                    <button onClick={() => setCurrentPage('live')} className="text-xs text-[#00e6a7] font-bold flex items-center gap-1">
+                      View All Live <Icons.ChevronRight size={12} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {filtered.filter(m => m.isLive).map(match => (
+                      <div key={match.id} className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                        <div className="flex justify-between items-center text-[11px] text-slate-400 mb-3">
+                          <span className="font-semibold text-slate-300">{match.competition}</span>
+                          <span className="bg-[#00e6a7]/15 text-[#00e6a7] px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                            <Icons.Clock size={11} /> {match.minute}
+                          </span>
+                        </div>
+                        <div onClick={() => setCurrentPage('match')} className="cursor-pointer mb-3.5 group">
+                          <div className="flex justify-between items-center py-1">
+                            <div className="flex items-center gap-2">
+                              <ClubBadge name={match.homeTeam} size={20} />
+                              <span className="text-sm font-bold text-white group-hover:text-[#00e6a7]">{match.homeTeam}</span>
+                            </div>
+                            <span className="font-extrabold text-base text-white">{match.homeScore}</span>
+                          </div>
+                          <div className="flex justify-between items-center py-1">
+                            <div className="flex items-center gap-2">
+                              <ClubBadge name={match.awayTeam} size={20} />
+                              <span className="text-sm font-bold text-white group-hover:text-[#00e6a7]">{match.awayTeam}</span>
+                            </div>
+                            <span className="font-extrabold text-base text-white">{match.awayScore}</span>
+                          </div>
+                        </div>
+
+                        {/* 1X2 Odds */}
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { label: '1', name: match.homeTeam, odds: match.odds.home },
+                            { label: 'X', name: 'Draw', odds: match.odds.draw },
+                            { label: '2', name: match.awayTeam, odds: match.odds.away }
+                          ].map(item => (
+                            <button
+                              key={item.label}
+                              onClick={() => handleSelectOdd({
+                                id: `${match.id}-${item.label}`,
+                                matchName: `${match.homeTeam} vs ${match.awayTeam}`,
+                                marketName: 'Full Time Result',
+                                selectionName: item.name,
+                                odds: item.odds
+                              })}
+                              className="bg-[#17202c] hover:bg-[#1e2a3a] border border-[#222e3e] py-2 px-2 rounded-lg flex flex-col items-center transition-colors"
+                            >
+                              <span className="text-[10px] text-slate-400">{item.label}</span>
+                              <span className="text-xs font-black text-[#00e6a7]">{item.odds.toFixed(2)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Starting Soon */}
+                <div>
+                  <h2 className="text-sm font-extrabold uppercase tracking-wide text-white mb-3">Starting Soon</h2>
+                  <div className="space-y-2.5">
+                    {filtered.filter(m => !m.isLive).map(match => (
+                      <div key={match.id} className="bg-[#121923] border border-[#1c2738] rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => setFavorites(f => f.includes(match.homeTeam) ? f.filter(x => x !== match.homeTeam) : [...f, match.homeTeam])}
+                            className={favorites.includes(match.homeTeam) ? "text-amber-400" : "text-slate-600"}
+                          >
+                            <Icons.Star size={15} filled={favorites.includes(match.homeTeam)} />
+                          </button>
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400">{match.competition} • {match.startTime}</span>
+                            <div onClick={() => setCurrentPage('match')} className="flex items-center gap-2 cursor-pointer mt-0.5">
+                              <ClubBadge name={match.homeTeam} size={18} />
+                              <span className="font-bold text-sm text-white hover:text-[#00e6a7]">{match.homeTeam}</span>
+                              <span className="text-slate-500 font-normal text-xs">vs</span>
+                              <ClubBadge name={match.awayTeam} size={18} />
+                              <span className="font-bold text-sm text-white hover:text-[#00e6a7]">{match.awayTeam}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 sm:w-72">
+                          {[
+                            { label: '1', name: match.homeTeam, odds: match.odds.home },
+                            { label: 'X', name: 'Draw', odds: match.odds.draw },
+                            { label: '2', name: match.awayTeam, odds: match.odds.away }
+                          ].map(item => (
+                            <button
+                              key={item.label}
+                              onClick={() => handleSelectOdd({
+                                id: `${match.id}-${item.label}`,
+                                matchName: `${match.homeTeam} vs ${match.awayTeam}`,
+                                marketName: 'Full Time Result',
+                                selectionName: item.name,
+                                odds: item.odds
+                              })}
+                              className="bg-[#17202c] hover:bg-[#1e2a3a] border border-[#222e3e] py-1.5 px-2 rounded-lg flex justify-between items-center"
+                            >
+                              <span className="text-[10px] text-slate-400">{item.label}</span>
+                              <span className="text-xs font-bold text-[#00e6a7]">{item.odds.toFixed(2)}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* --- PAGE 2: LIVE IN-PLAY --- */}
+            {currentPage === 'live' && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-[#1c2738] pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-[#00e6a7] animate-pulse" />
+                    <h1 className="text-lg font-black text-white">LIVE IN-PLAY</h1>
+                  </div>
+                  <span className="text-xs text-slate-400 font-semibold">{filtered.filter(m => m.isLive).length} Matches Ongoing</span>
+                </div>
+
+                <div className="space-y-3">
+                  {filtered.filter(m => m.isLive).map(match => (
+                    <div key={match.id} className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <span className="text-xs font-bold text-slate-300">{match.competition}</span>
+                        <span className="text-xs font-bold text-[#00e6a7] bg-[#00e6a7]/10 px-2 py-0.5 rounded flex items-center gap-1.5">
+                          <Icons.Clock size={12} /> {match.minute} In-Play
+                        </span>
+                      </div>
+                      <div onClick={() => setCurrentPage('match')} className="cursor-pointer mb-3 p-3 bg-[#151d28] rounded-lg">
+                        <div className="flex justify-between items-center text-sm font-bold text-white mb-2">
+                          <div className="flex items-center gap-2">
+                            <ClubBadge name={match.homeTeam} size={20} />
+                            <span>{match.homeTeam}</span>
+                          </div>
+                          <span className="text-[#00e6a7] font-extrabold">{match.homeScore}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-sm font-bold text-white">
+                          <div className="flex items-center gap-2">
+                            <ClubBadge name={match.awayTeam} size={20} />
+                            <span>{match.awayTeam}</span>
+                          </div>
+                          <span className="text-[#00e6a7] font-extrabold">{match.awayScore}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { label: '1', name: match.homeTeam, odds: match.odds.home },
+                          { label: 'X', name: 'Draw', odds: match.odds.draw },
+                          { label: '2', name: match.awayTeam, odds: match.odds.away }
+                        ].map(item => (
+                          <button
+                            key={item.label}
+                            onClick={() => handleSelectOdd({
+                              id: `${match.id}-${item.label}`,
+                              matchName: `${match.homeTeam} vs ${match.awayTeam}`,
+                              marketName: 'Full Time Result',
+                              selectionName: item.name,
+                              odds: item.odds
+                            })}
+                            className="bg-[#17202c] hover:bg-[#1e2a3a] border border-[#222e3e] py-2 px-3 rounded-lg flex justify-between items-center"
+                          >
+                            <span className="text-xs text-slate-400">{item.name}</span>
+                            <span className="text-xs font-black text-[#00e6a7]">{item.odds.toFixed(2)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* --- PAGE 3: FOOTBALL (5 LEAGUES & 1X2 ODDS) --- */}
+            {currentPage === 'football' && (
+              <div className="space-y-4">
+                <div className="border-b border-[#1c2738] pb-3">
+                  <h1 className="text-lg font-black text-white">FOOTBALL FIXTURES</h1>
+                  <p className="text-xs text-slate-400">European league fixtures with 1X2 direct betting</p>
+                </div>
+
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {['All', 'Premier League', 'Champions League', 'LaLiga', 'Serie A', 'Bundesliga'].map(lg => (
+                    <button
+                      key={lg}
+                      onClick={() => setSelectedLeague(lg)}
+                      className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap border ${
+                        selectedLeague === lg ? 'bg-[#00e6a7] text-slate-950 border-[#00e6a7] font-bold' : 'bg-[#121923] text-slate-300 border-[#1c2738]'
+                      }`}
+                    >
+                      {lg}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-3">
+                  {filtered
+                    .filter(m => selectedLeague === 'All' || m.competition === selectedLeague)
+                    .map(match => (
+                      <div key={match.id} className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                        <div className="flex justify-between items-center mb-2.5">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setFavorites(f => f.includes(match.competition) ? f.filter(x => x !== match.competition) : [...f, match.competition])}
+                              className={favorites.includes(match.competition) ? "text-amber-400" : "text-slate-600"}
+                            >
+                              <Icons.Star size={14} filled={favorites.includes(match.competition)} />
+                            </button>
+                            <span className="text-xs font-extrabold text-slate-300">{match.competition}</span>
+                          </div>
+                          <span className="text-[11px] text-slate-400">
+                            {match.isLive ? <span className="text-[#00e6a7] font-bold">In-Play {match.minute}</span> : match.startTime}
+                          </span>
+                        </div>
+
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                          <div onClick={() => setCurrentPage('match')} className="cursor-pointer group flex-1">
+                            <div className="flex items-center gap-2">
+                              <ClubBadge name={match.homeTeam} size={20} />
+                              <span className="font-bold text-sm text-white group-hover:text-[#00e6a7]">{match.homeTeam}</span>
+                              <span className="text-slate-500 font-normal">vs</span>
+                              <ClubBadge name={match.awayTeam} size={20} />
+                              <span className="font-bold text-sm text-white group-hover:text-[#00e6a7]">{match.awayTeam}</span>
+                            </div>
+                            <p className="text-[10px] text-slate-400 mt-0.5">Click fixture to open detailed match page</p>
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 md:w-80">
+                            {[
+                              { label: '1', name: `${match.homeTeam} to Win`, odds: match.odds.home },
+                              { label: 'X', name: 'Draw', odds: match.odds.draw },
+                              { label: '2', name: `${match.awayTeam} to Win`, odds: match.odds.away }
+                            ].map(sel => (
+                              <button
+                                key={sel.label}
+                                onClick={() => handleSelectOdd({
+                                  id: `${match.id}-${sel.label}`,
+                                  matchName: `${match.homeTeam} vs ${match.awayTeam}`,
+                                  marketName: 'Full Time Result',
+                                  selectionName: sel.name,
+                                  odds: sel.odds
+                                })}
+                                className="bg-[#16202c] hover:bg-[#1d2938] border border-[#222f42] py-2 px-2.5 rounded-lg flex justify-between items-center"
+                              >
+                                <span className="text-[10px] text-slate-400 font-bold">{sel.label}</span>
+                                <span className="text-xs font-black text-[#00e6a7]">{sel.odds.toFixed(2)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* --- PAGE 4: DETAILED MATCH PAGE (ARSENAL VS BRIGHTON WITH REAL CRESTS) --- */}
+            {currentPage === 'match' && (
+              <div className="max-w-4xl mx-auto space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <button onClick={() => setCurrentPage('football')} className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-[#00e6a7] font-semibold">
+                    <Icons.ArrowLeft size={15} /> Back to Matches
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={simulateOddsChange}
+                      className="bg-[#121923] hover:bg-[#17212e] border border-[#1c2738] text-teal-300 text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5"
+                    >
+                      <Icons.TrendingUp size={13} /> Trigger Odds Fluctuation
+                    </button>
+                    <button
+                      onClick={toggleMarketSuspended}
+                      className={`text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 border ${
+                        activeBet?.isSuspended ? 'bg-rose-950 border-rose-500 text-rose-300' : 'bg-[#121923] border-[#1c2738] text-amber-300'
+                      }`}
+                    >
+                      <Icons.ShieldAlert size={13} /> {activeBet?.isSuspended ? 'Unsuspend' : 'Suspend Market'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Scoreboard with Official Crests */}
+                <div className="bg-[#121923] border border-[#1c2738] rounded-2xl p-6 text-center shadow-lg">
+                  <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-[#00e6a7] uppercase tracking-wider mb-4">
+                    <span className="w-2 h-2 rounded-full bg-[#00e6a7] animate-ping" />
+                    <Icons.Clock size={13} /> In Play • 64:20 • Premier League
+                  </div>
+
+                  <div className="grid grid-cols-3 items-center max-w-md mx-auto">
+                    <div className="flex flex-col items-center">
+                      <div className="w-16 h-16 rounded-2xl bg-[#17202c] border border-[#2b394b] flex items-center justify-center p-2 mb-2 shadow-md">
+                        <ClubBadge name="Arsenal" size={48} />
+                      </div>
+                      <span className="font-extrabold text-sm text-white">Arsenal</span>
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                      <span className="text-4xl sm:text-5xl font-black text-white tracking-widest">2 - 1</span>
+                      <span className="text-[11px] text-slate-400 mt-1">Emirates Stadium</span>
+                    </div>
+
+                    <div className="flex flex-col items-center">
+                      <div className="w-16 h-16 rounded-2xl bg-[#17202c] border border-[#2b394b] flex items-center justify-center p-2 mb-2 shadow-md">
+                        <ClubBadge name="Brighton" size={48} />
+                      </div>
+                      <span className="font-extrabold text-sm text-white">Brighton</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6 Market Groups */}
+                <div className="space-y-3">
+                  {/* 1. Popular */}
+                  <div className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="font-bold text-xs uppercase text-slate-300">1. Popular: Match Result (1X2)</h3>
+                      {activeBet?.isSuspended && (
+                        <span className="text-[10px] font-black text-rose-400 bg-rose-950 px-2 py-0.5 rounded border border-rose-800">SUSPENDED</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { label: 'Arsenal', odds: 1.55 },
+                        { label: 'Draw', odds: 4.20 },
+                        { label: 'Brighton', odds: 5.80 }
+                      ].map(s => (
+                        <button
+                          key={s.label}
+                          disabled={activeBet?.isSuspended}
+                          onClick={() => handleSelectOdd({
+                            id: `ars-${s.label}`,
+                            matchName: 'Arsenal vs Brighton',
+                            marketName: 'Match Result',
+                            selectionName: s.label,
+                            odds: s.odds,
+                            isSuspended: activeBet?.isSuspended
+                          })}
+                          className={`p-3 rounded-lg border flex flex-col items-center justify-center ${
+                            activeBet?.isSuspended
+                              ? 'opacity-40 bg-slate-900 border-slate-800 cursor-not-allowed'
+                              : 'bg-[#16202c] hover:bg-[#1d2938] border-[#222e3e]'
+                          }`}
+                        >
+                          <span className="text-xs text-slate-300 font-semibold">{s.label}</span>
+                          <span className="text-sm font-black text-[#00e6a7] mt-1">{s.odds.toFixed(2)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 2. Goals */}
+                  <div className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                    <h3 className="font-bold text-xs uppercase text-slate-300 mb-3">2. Goals: Over / Under 3.5</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { name: 'Over 3.5 Goals', odds: 1.75 },
+                        { name: 'Under 3.5 Goals', odds: 2.05 }
+                      ].map(g => (
+                        <button
+                          key={g.name}
+                          onClick={() => handleSelectOdd({
+                            id: `goals-${g.name}`,
+                            matchName: 'Arsenal vs Brighton',
+                            marketName: 'Total Goals',
+                            selectionName: g.name,
+                            odds: g.odds
+                          })}
+                          className="bg-[#16202c] hover:bg-[#1d2938] border border-[#222e3e] p-2.5 rounded-lg flex justify-between items-center"
+                        >
+                          <span className="text-xs text-slate-300">{g.name}</span>
+                          <span className="text-xs font-black text-[#00e6a7]">{g.odds.toFixed(2)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. Halves */}
+                  <div className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                    <h3 className="font-bold text-xs uppercase text-slate-300 mb-3">3. Halves: 2nd Half Winner</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { name: 'Arsenal (2nd Half)', odds: 2.10 },
+                        { name: 'Draw (2nd Half)', odds: 2.40 },
+                        { name: 'Brighton (2nd Half)', odds: 3.60 }
+                      ].map(h => (
+                        <button
+                          key={h.name}
+                          onClick={() => handleSelectOdd({
+                            id: `h-${h.name}`,
+                            matchName: 'Arsenal vs Brighton',
+                            marketName: '2nd Half Winner',
+                            selectionName: h.name,
+                            odds: h.odds
+                          })}
+                          className="bg-[#16202c] hover:bg-[#1d2938] border border-[#222e3e] p-2 rounded-lg flex flex-col items-center"
+                        >
+                          <span className="text-[10px] text-slate-300">{h.name}</span>
+                          <span className="text-xs font-bold text-[#00e6a7] mt-0.5">{h.odds.toFixed(2)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 4. Handicaps */}
+                  <div className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                    <h3 className="font-bold text-xs uppercase text-slate-300 mb-3">4. Handicaps: Asian Handicap (-1.5)</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { name: 'Arsenal (-1.5)', odds: 2.35 },
+                        { name: 'Brighton (+1.5)', odds: 1.58 }
+                      ].map(hc => (
+                        <button
+                          key={hc.name}
+                          onClick={() => handleSelectOdd({
+                            id: `hc-${hc.name}`,
+                            matchName: 'Arsenal vs Brighton',
+                            marketName: 'Asian Handicap',
+                            selectionName: hc.name,
+                            odds: hc.odds
+                          })}
+                          className="bg-[#16202c] hover:bg-[#1d2938] border border-[#222e3e] p-2.5 rounded-lg flex justify-between items-center"
+                        >
+                          <span className="text-xs text-slate-300">{hc.name}</span>
+                          <span className="text-xs font-black text-[#00e6a7]">{hc.odds.toFixed(2)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 5. Goalscorers */}
+                  <div className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                    <h3 className="font-bold text-xs uppercase text-slate-300 mb-3">5. Goalscorers</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {[
+                        { name: 'Bukayo Saka (Arsenal)', odds: 2.80 },
+                        { name: 'Kai Havertz (Arsenal)', odds: 3.10 },
+                        { name: 'Danny Welbeck (Brighton)', odds: 4.50 },
+                        { name: 'Kaoru Mitoma (Brighton)', odds: 5.20 }
+                      ].map(sc => (
+                        <button
+                          key={sc.name}
+                          onClick={() => handleSelectOdd({
+                            id: `sc-${sc.name}`,
+                            matchName: 'Arsenal vs Brighton',
+                            marketName: 'Anytime Goalscorer',
+                            selectionName: sc.name,
+                            odds: sc.odds
+                          })}
+                          className="bg-[#16202c] hover:bg-[#1d2938] border border-[#222e3e] p-2.5 rounded-lg flex justify-between items-center"
+                        >
+                          <span className="text-xs text-slate-300">{sc.name}</span>
+                          <span className="text-xs font-black text-[#00e6a7]">{sc.odds.toFixed(2)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 6. Corners & Cards */}
+                  <div className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                    <h3 className="font-bold text-xs uppercase text-slate-300 mb-3">6. Corners & Cards</h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { name: 'Over 9.5 Corners', odds: 1.88 },
+                        { name: 'Over 4.5 Cards', odds: 2.02 }
+                      ].map(cc => (
+                        <button
+                          key={cc.name}
+                          onClick={() => handleSelectOdd({
+                            id: `cc-${cc.name}`,
+                            matchName: 'Arsenal vs Brighton',
+                            marketName: 'Corners & Cards',
+                            selectionName: cc.name,
+                            odds: cc.odds
+                          })}
+                          className="bg-[#16202c] hover:bg-[#1d2938] border border-[#222e3e] p-2.5 rounded-lg flex justify-between items-center"
+                        >
+                          <span className="text-xs text-slate-300">{cc.name}</span>
+                          <span className="text-xs font-black text-[#00e6a7]">{cc.odds.toFixed(2)}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* --- PAGE 5: BET SLIP & MY BETS (COMBINED) --- */}
+            {currentPage === 'betslip' && (
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="bg-[#121923] border border-[#1c2738] rounded-2xl p-4 shadow-xl">
+                  <div className="flex items-center justify-between border-b border-[#1c2738] pb-3 mb-3">
+                    <span className="text-xs uppercase font-extrabold tracking-wider text-white flex items-center gap-1.5">
+                      <Icons.Receipt size={16} className="text-[#00e6a7]" /> Singles Bet Slip (USDT)
+                    </span>
+                    {activeBet && (
+                      <button onClick={() => setActiveBet(null)} className="text-slate-400 hover:text-rose-400">
+                        <Icons.Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+
+                  {!activeBet ? (
+                    <div className="py-8 text-center text-slate-400">
+                      <p className="text-sm font-semibold">Your Bet Slip is empty</p>
+                      <p className="text-xs text-slate-500 mt-1">Select odds on any match to place a single bet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3.5">
+                      <div className="bg-[#161f2b] p-3 rounded-xl border border-[#1c2738]">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-extrabold text-sm text-white">{activeBet.selectionName}</h4>
+                            <p className="text-xs text-slate-400 mt-0.5">{activeBet.marketName} • {activeBet.matchName}</p>
+                          </div>
+                          <span className="text-base font-black text-[#00e6a7] bg-[#111720] px-2.5 py-1 rounded border border-[#1c2738]">
+                            {activeBet.odds.toFixed(2)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Odds change banner */}
+                      {oddsChanged && (
+                        <div className="bg-amber-950/70 border border-amber-500/60 p-2.5 rounded-xl flex items-center justify-between">
+                          <div className="text-xs text-amber-200">
+                            Odds changed: <span className="line-through text-slate-400">{activeBet.originalOdds}</span> → <strong className="text-white">{activeBet.odds}</strong>
+                          </div>
+                          <button
+                            onClick={() => { setActiveBet({ ...activeBet, originalOdds: undefined }); setOddsChanged(false); }}
+                            className="bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs px-2.5 py-1 rounded"
+                          >
+                            Accept
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Suspended alert */}
+                      {activeBet.isSuspended && (
+                        <div className="bg-rose-950 border border-rose-500 p-2.5 rounded-xl text-xs text-rose-300 font-semibold flex items-center gap-2">
+                          <Icons.ShieldAlert size={15} /> Market is suspended. Bet cannot be placed.
+                        </div>
+                      )}
+
+                      {/* Stake input */}
+                      <div>
+                        <div className="flex justify-between text-xs font-bold text-slate-300 mb-1">
+                          <span>Stake (USDT)</span>
+                          <span className="text-slate-500">Max limit: 500 USDT</span>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={stake}
+                            onChange={(e) => setStake(e.target.value)}
+                            className="w-full bg-[#151c27] border border-[#1c2738] focus:border-[#00e6a7] rounded-xl py-2.5 pl-8 pr-16 text-white font-black text-base focus:outline-none"
+                          />
+                          <span className="absolute left-3 top-3 text-slate-400 text-xs">₮</span>
+                          <span className="absolute right-3.5 top-3 text-slate-400 text-xs font-bold">USDT</span>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="grid grid-cols-4 gap-2 mt-2">
+                          {['10', '25', '50', '100'].map(val => (
+                            <button
+                              key={val}
+                              onClick={() => setStake(val)}
+                              className="bg-[#16202c] hover:bg-[#1f2b3b] border border-[#1c2738] py-1 text-xs text-slate-300 font-bold rounded-lg"
+                            >
+                              +{val}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="border-t border-[#1c2738] pt-3 text-xs space-y-1">
+                        <div className="flex justify-between text-slate-400">
+                          <span>Total Stake:</span>
+                          <span className="text-white font-semibold">{stake || '0.00'} USDT</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-sm">
+                          <span className="text-slate-300">Potential Return:</span>
+                          <span className="text-[#00e6a7] font-black">
+                            {!isNaN(parseFloat(stake)) ? (parseFloat(stake) * activeBet.odds).toFixed(2) : '0.00'} USDT
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handlePlaceBet}
+                        disabled={activeBet.isSuspended}
+                        className={`w-full py-3 rounded-xl font-black text-sm tracking-wide transition-all ${
+                          activeBet.isSuspended
+                            ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            : 'bg-[#00e6a7] hover:bg-[#00cf96] text-slate-950 shadow-lg shadow-[#00e6a7]/20'
+                        }`}
+                      >
+                        PLACE BET (USDT)
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* My Bets History */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center gap-1.5 border-b border-[#1c2738] pb-2">
+                    <Icons.History size={16} className="text-[#00e6a7]" />
+                    <h3 className="text-xs uppercase font-extrabold tracking-wider text-white">My Bets ({myBets.length})</h3>
+                  </div>
+
+                  {myBets.map(b => (
+                    <div key={b.id} className="bg-[#121923] border border-[#1c2738] rounded-xl p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h5 className="font-extrabold text-sm text-white">{b.selectionName}</h5>
+                          <p className="text-[11px] text-slate-400">{b.marketName} • {b.matchName}</p>
+                        </div>
+                        <span className={`text-[9px] font-black px-2 py-0.5 rounded tracking-wider ${
+                          b.status === 'WON'
+                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                            : b.status === 'CASHED_OUT'
+                            ? 'bg-amber-950 text-amber-400 border border-amber-800'
+                            : 'bg-teal-950 text-[#00e6a7] border border-[#00e6a7]/40'
+                        }`}>
+                          {b.status}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 bg-[#16202c] p-2 rounded-lg text-xs my-2 border border-[#1c2738]">
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Odds</span>
+                          <span className="font-bold text-white">{b.odds.toFixed(2)}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Stake</span>
+                          <span className="font-bold text-white">{b.stake} USDT</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-slate-500 block">Return</span>
+                          <span className="font-bold text-[#00e6a7]">{b.potentialReturn} USDT</span>
+                        </div>
+                      </div>
+
+                      {b.status === 'OPEN' && b.cashoutAmount && (
+                        <button
+                          onClick={() => cashOut(b.id)}
+                          className="w-full py-1.5 bg-[#172433] hover:bg-[#1f3044] border border-[#2a3f58] text-teal-300 font-extrabold text-xs rounded-lg flex items-center justify-center gap-1.5"
+                        >
+                          <Icons.DollarSign size={13} /> Cash Out: {b.cashoutAmount} USDT
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </main>
+
+          {/* FIXED MOBILE BOTTOM NAVIGATION (5 TABS) */}
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#0d1219]/95 backdrop-blur-md border-t border-[#1c2738] px-2 py-1">
+            <div className="flex justify-around items-center h-14">
+              {[
+                { id: 'home', label: 'Sports', icon: Icons.Home },
+                { id: 'live', label: 'Live', icon: Icons.Radio },
+                { id: 'football', label: 'Football', icon: Icons.Trophy },
+                { id: 'betslip', label: 'Bet Slip', icon: Icons.Receipt, badge: activeBet ? '1' : null },
+                { id: 'betslip', label: 'My Bets', icon: Icons.History }
+              ].map((item, idx) => {
+                const IconComponent = item.icon;
+                const isActive = currentPage === item.id;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentPage(item.id)}
+                    className={`relative flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
+                      isActive ? 'text-[#00e6a7]' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className="relative">
+                      <IconComponent size={19} />
+                      {item.badge && (
+                        <span className="absolute -top-1.5 -right-2 bg-[#00e6a7] text-slate-950 font-black text-[9px] w-4 h-4 rounded-full flex items-center justify-center">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-[10px] mt-1 font-semibold ${isActive ? 'text-[#00e6a7]' : 'text-slate-400'}`}>
+                      {item.label}
+                    </span>
+                    {isActive && (
+                      <span className="absolute bottom-0 w-8 h-0.5 bg-[#00e6a7] rounded-full shadow-[0_0_8px_#00e6a7]" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
